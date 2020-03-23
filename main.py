@@ -38,8 +38,8 @@ parser.add_argument('--gpu_mode', type=bool, default=True)
 parser.add_argument('--threads', type=int, default=2, help='number of threads for data loader to use')
 parser.add_argument('--seed', type=int, default=67454, help='random seed to use. Default=123')
 parser.add_argument('--gpus', default=1, type=int, help='number of gpu')
-parser.add_argument('--img_flist', type=str, default='/data/dataset/places2/flist/shuffled_train.flist')
-parser.add_argument('--mask_flist', type=str, default='/data/dataset/places2/flist/3w_all.flist')
+parser.add_argument('--img_flist', type=str, default='shuffled_train.flist')
+parser.add_argument('--mask_flist', type=str, default='all.flist')
 parser.add_argument('--model_type', type=str, default='RN')
 parser.add_argument('--threshold', type=float, default=0.8)
 parser.add_argument('--pretrained_sr', default='../weights/xx.pth', help='pretrained base model')
@@ -53,8 +53,8 @@ parser.add_argument('--gan_weight', type=float, default=0.1)
 parser.add_argument('--update_weight_interval', type=int, default=5000, help='how many steps to update losses weighing')
 parser.add_argument('--with_test', default=False, action='store_true', help='Train with testing?')
 parser.add_argument('--test', default=False, action='store_true', help='Test model')
-parser.add_argument('--test_mask_flist', type=str, default='/data/dataset/places2/flist/mask1k.flist')
-parser.add_argument('--test_img_flist', type=str, default='/data/dataset/places2/flist/val1k.flist')
+parser.add_argument('--test_mask_flist', type=str, default='mask1k.flist')
+parser.add_argument('--test_img_flist', type=str, default='val1k.flist')
 parser.add_argument('--tb', default=False, action='store_true', help='Use tensorboardX?')
 
 opt = parser.parse_args()
@@ -92,7 +92,7 @@ def train(epoch):
         d_real_loss = model.adversarial_loss(d_real, True, True)
         d_fake_loss = model.adversarial_loss(d_fake, False, True)
         d_loss += (d_real_loss + d_fake_loss) / 2
-        
+
         g_fake, _ = model.discriminator(prediction)
         g_gan_loss = model.adversarial_loss(g_fake, True, False)
         g_loss += model.gan_weight * g_gan_loss
