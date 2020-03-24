@@ -81,6 +81,7 @@ def train(epoch):
             mask = mask.cuda()
 
         prediction = model.generator(gt, mask)
+        merged_result = prediction * mask + gt * (1 - mask)
         # render(epoch, iteration, mask, prediction.detach(), gt)
         # os._exit()
 
@@ -96,7 +97,8 @@ def train(epoch):
         g_fake, _ = model.discriminator(prediction)
         g_gan_loss = model.adversarial_loss(g_fake, True, False)
         g_loss += model.gan_weight * g_gan_loss
-        g_l1_loss = model.l1_loss(gt, prediction) / torch.mean(mask)
+        g_l1_loss = model.l1_loss(gt, merged_result) / torch.mean(mask)
+        # g_l1_loss = model.l1_loss(gt, prediction) / torch.mean(mask)
         g_loss += model.l1_weight * g_l1_loss
 
         # Record
@@ -137,7 +139,7 @@ def train(epoch):
         t_io1 = time.time()
 
         if iteration % opt.render_interval == 0:
-            render(epoch, iteration, mask, prediction.detach(), gt)
+            render(epoch, iteration, mask, merged_result.detach(), gt)
             if opt.with_test:
                 print("Testing 1000 images...")
                 test_psnr = test(model, test_data_loader)

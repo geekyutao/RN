@@ -65,6 +65,7 @@ def eval():
         # t0 = time.time()
         with torch.no_grad():
             prediction = model.generator(gt, mask)
+            prediction = prediction * mask + gt * (1 - mask)
         # t1 = time.time()
         # print("===> Processing: %s || Timer: %.4f sec." % (str(count), (t1 - t0)))
 

@@ -80,7 +80,7 @@ class G_Net(nn.Module):
         x = self.decoder(x)
 
         x = (torch.tanh(x) + 1) / 2
-        x = x*mask+gt*(1-mask)
+        # x = x*mask+gt*(1-mask)
         return x
 
 
