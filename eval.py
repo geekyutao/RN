@@ -27,7 +27,7 @@ from models import InpaintingModel
 
 
 # Training settings
-parser = argparse.ArgumentParser(description='PyTorch Video Inpainting with Background Auxilary')
+parser = argparse.ArgumentParser(description='PyTorch Image Inpainting')
 parser.add_argument('--bs', type=int, default=64, help='training batch size')
 parser.add_argument('--lr', type=float, default=0.0001, help='Learning Rate. Default=0.0001')
 parser.add_argument('--gpu_mode', type=bool, default=True)
@@ -35,9 +35,9 @@ parser.add_argument('--threads', type=int, default=1, help='number of threads fo
 parser.add_argument('--seed', type=int, default=67454, help='random seed to use. Default=123')
 parser.add_argument('--gpus', default=1, type=int, help='number of gpu')
 parser.add_argument('--threshold', type=float, default=0.8)
-parser.add_argument('--img_flist', type=str, default='val.flist')
-parser.add_argument('--mask_flist', type=str, default='all.flist')
-parser.add_argument('--model', default='x_admin.cluster.localRN-0.8BGNet_bs_14_epoch_9.pth', help='sr pretrained base model')
+parser.add_argument('--img_flist', type=str, default='/data/dataset/places2/flist/val.flist')
+parser.add_argument('--mask_flist', type=str, default='/data/dataset/places2/flist/3w_all.flist')
+parser.add_argument('--model', default='x_admin.cluster.localRN-0.8BGNet_bs_14_epoch_9.pth', help='pretrained model')
 parser.add_argument('--save', default=False, action='store_true', help='If save test images')
 parser.add_argument('--save_path', type=str, default='./test_results')
 parser.add_argument('--input_size', type=int, default=256, help='input image size')
