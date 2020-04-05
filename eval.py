@@ -27,7 +27,7 @@ from models import InpaintingModel
 
 
 # Training settings
-parser = argparse.ArgumentParser(description='PyTorch Image Inpainting')
+parser = argparse.ArgumentParser(description='PyTorch Video Inpainting with Background Auxilary')
 parser.add_argument('--bs', type=int, default=64, help='training batch size')
 parser.add_argument('--lr', type=float, default=0.0001, help='Learning Rate. Default=0.0001')
 parser.add_argument('--gpu_mode', type=bool, default=True)
@@ -37,7 +37,7 @@ parser.add_argument('--gpus', default=1, type=int, help='number of gpu')
 parser.add_argument('--threshold', type=float, default=0.8)
 parser.add_argument('--img_flist', type=str, default='/data/dataset/places2/flist/val.flist')
 parser.add_argument('--mask_flist', type=str, default='/data/dataset/places2/flist/3w_all.flist')
-parser.add_argument('--model', default='x_admin.cluster.localRN-0.8BGNet_bs_14_epoch_9.pth', help='pretrained model')
+parser.add_argument('--model', default='/data/yutao/Project/weights/BGNet/x_admin.cluster.localRN-0.8BGNet_bs_14_epoch_9.pth', help='sr pretrained base model')
 parser.add_argument('--save', default=False, action='store_true', help='If save test images')
 parser.add_argument('--save_path', type=str, default='./test_results')
 parser.add_argument('--input_size', type=int, default=256, help='input image size')
@@ -52,6 +52,7 @@ def eval():
     model.eval()
     model.generator.eval()
     count = 1
+    avg_du = 0
     avg_psnr, avg_ssim, avg_l1 = 0., 0., 0.
     for batch in testing_data_loader:
         gt, mask, index = batch
@@ -62,12 +63,19 @@ def eval():
 
 
         ## The test or ensemble test
-        # t0 = time.time()
+
+        # t0 = time.clock()
         with torch.no_grad():
             prediction = model.generator(gt, mask)
             prediction = prediction * mask + gt * (1 - mask)
-        # t1 = time.time()
-        # print("===> Processing: %s || Timer: %.4f sec." % (str(count), (t1 - t0)))
+        # t1 = time.clock()
+        # du = t1 - t0
+        # print("===> Processing: %s || Timer: %.4f sec." % (str(count), du))
+
+        # avg_du += du
+        # print(
+        #     "Number: %05d" % (count),
+        #     " | Average time: %.4f" % (avg_du/count))
 
         # Save the video frames
         batch_avg_psnr, batch_avg_ssim, batch_avg_l1 = evaluate_batch(
@@ -122,27 +130,33 @@ def SSIM(pred, gt, data_range=255, win_size=11, multichannel=True):
     multichannel=multichannel, win_size=win_size)
 
 def evaluate_batch(batch_size, gt_batch, pred_batch, mask_batch, save=False, path=None, count=None, index=None):
+    pred_batch = pred_batch * mask_batch + gt_batch * (1 - mask_batch)
+
     if save:
-        input_batch = gt_batch * (1 - mask_batch) + pred_batch * mask
+        input_batch = gt_batch * (1 - mask_batch) + mask_batch
         input_batch = (input_batch.detach().permute(0,2,3,1).cpu().numpy()*255).astype(np.uint8)
         mask_batch = (mask_batch.detach().permute(0,2,3,1).cpu().numpy()[:,:,:,0]*255).astype(np.uint8)
+
+        if not os.path.exists(path):
+            os.mkdir(path)
+
 
     gt_batch = (gt_batch.detach().permute(0,2,3,1).cpu().numpy()*255).astype(np.uint8)
     pred_batch = (pred_batch.detach().permute(0,2,3,1).cpu().numpy()*255).astype(np.uint8)
 
     psnr, ssim, l1 = 0., 0., 0.
     for i in range(batch_size):
-        gt, pred, name = gt_batch[i], pred_batch[i], index[i]
+        gt, pred, name = gt_batch[i], pred_batch[i], index[i].data.item()
 
         psnr += PSNR(pred, gt)
         ssim += SSIM(pred, gt)
         l1 += L1(pred, gt)
 
         if save:
-            save_img(path, count+'_'+name+'_input', input_batch[i])
-            save_img(path, count+'_'+name+'_mask', mask_batch[i])
-            save_img(path, count+'_'+name+'_output', pred_batch[i])
-            save_img(path, count+'_'+name+'_gt', gt_batch[i])
+            save_img(path, str(count)+'_'+str(name)+'_input', input_batch[i])
+            save_img(path, str(count)+'_'+str(name)+'_mask', mask_batch[i])
+            save_img(path, str(count)+'_'+str(name)+'_output', pred_batch[i])
+            save_img(path, str(count)+'_'+str(name)+'_gt', gt_batch[i])
 
     return psnr/batch_size, ssim/batch_size, l1/batch_size
 
@@ -173,14 +187,25 @@ if __name__ == '__main__':
     print_network(model.discriminator)
     print('----------------------------------------------')
 
+    pretained_G_model = torch.load(opt.model, map_location=lambda storage, loc: storage)
+
     if cuda:
         model = model.cuda()
         model.generator = torch.nn.DataParallel(model.generator, device_ids=gpus_list)
         model.discriminator = torch.nn.DataParallel(model.discriminator, device_ids=gpus_list)
+        model.generator.load_state_dict(pretained_G_model)
+    else:
+        new_state_dict = model.generator.state_dict()
+        for k, v in pretained_G_model.items():
+            if k[:7] == 'module.':
+                k = k[7:]
+            new_state_dict[k] = v
+        model.generator.load_state_dict(new_state_dict)
+        
 
-    pretained_model = torch.load(opt.model, map_location=lambda storage, loc: storage)
-    model.load_state_dict(pretained_model)
-    print('Pre-trained model is loaded.')
+    # pretained_G_model = torch.load(opt.model, map_location=lambda storage, loc: storage)
+    # model.generator.load_state_dict(pretained_G_model)
+    print('Pre-trained G model is loaded.')
 
     # Datasets
     print('===> Loading datasets')
@@ -192,7 +217,7 @@ if __name__ == '__main__':
         input_size=opt.input_size,
         batch_size=opt.bs,
         num_workers=opt.threads,
-        shuffle=True
+        shuffle=False
     )
     print('===> Loaded datasets')
 
