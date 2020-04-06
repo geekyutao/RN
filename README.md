@@ -7,7 +7,7 @@ The codes are initial version, not the revised version. I will update these some
 Please run the codes where the python is Version 3.x and pytorch>=0.4.
 
 ## Preparation
-Before running the codes, you should prepare training/evaluation image file list (flist) and mask file list (flist). You can refer to the folowing to generate .flist file:
+Before running the codes, you should prepare training/evaluation image file list (flist) and mask file list (flist). You can refer to the folowing command to generate .flist file:
 ```
 python flist.py --path your_dataset_folder --output xxx.flist
 ```
@@ -17,10 +17,18 @@ There are some hyperparameters that you can adjust in the main.py. To train the 
 ```
 python main.py --bs 14 --gpus 2 --prefix rn --img_flist your_training_images.flist --mask_flist your_training_masks.flist
 ```
+PS: You can set the "--bs" and "--gpus" any number as you want. The above is just an example.
+
 ## Evaluation
-To evaluate the model, you can run:
+To evaluate the model, you can use GPU or CPU to run.
+
+For GPU:
 ```
-python eval.py --bs 32 --model your_checkpont_path --img_flist your_eval_images.flist --mask_flist your_eval_masks.flist
+python eval.py --bs your_batch_size --model your_checkpoint_path --img_flist your_eval_images.flist --mask_flist your_eval_masks.flist
+```
+For CPU
+```
+python eval.py --cpu --bs your_batch_size --model your_checkpoint_path --img_flist your_eval_images.flist --mask_flist your_eval_masks.flist
 ```
 
 ## Cite Us
