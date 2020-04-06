@@ -17,7 +17,7 @@ There are some hyperparameters that you can adjust in the main.py. To train the 
 ```
 python main.py --bs 14 --gpus 2 --prefix rn --img_flist your_training_images.flist --mask_flist your_training_masks.flist
 ```
-PS: You can set the "--bs" and "--gpus" any number as you want. The above is just an example.
+PS: You can set the "--bs" and "--gpus" to any number as you like. The above is just an example.
 
 ## Evaluation
 To evaluate the model, you can use GPU or CPU to run.
@@ -26,7 +26,8 @@ For GPU:
 ```
 python eval.py --bs your_batch_size --model your_checkpoint_path --img_flist your_eval_images.flist --mask_flist your_eval_masks.flist
 ```
-For CPU
+
+For CPU:
 ```
 python eval.py --cpu --bs your_batch_size --model your_checkpoint_path --img_flist your_eval_images.flist --mask_flist your_eval_masks.flist
 ```
