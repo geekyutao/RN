@@ -117,7 +117,10 @@ class RN_L(nn.Module):
         sa_map, gamma, beta = self.sa(x)     # (B,1,M,N)
 
         # m = sa_map.detach()
-        mask = torch.zeros_like(sa_map).cuda()
+        if x.is_cuda:
+            mask = torch.zeros_like(sa_map).cuda()
+        else:
+            mask = torch.zeros_like(sa_map)
         mask[sa_map.detach() >= self.threshold] = 1
 
         rn_x = self.rn(x, mask.expand(x.size()))

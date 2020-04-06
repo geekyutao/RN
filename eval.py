@@ -30,7 +30,7 @@ from models import InpaintingModel
 parser = argparse.ArgumentParser(description='PyTorch Video Inpainting with Background Auxilary')
 parser.add_argument('--bs', type=int, default=64, help='training batch size')
 parser.add_argument('--lr', type=float, default=0.0001, help='Learning Rate. Default=0.0001')
-parser.add_argument('--gpu_mode', type=bool, default=True)
+parser.add_argument('--cpu', default=False, action='store_true', help='Use CPU to test')
 parser.add_argument('--threads', type=int, default=1, help='number of threads for data loader to use')
 parser.add_argument('--seed', type=int, default=67454, help='random seed to use. Default=123')
 parser.add_argument('--gpus', default=1, type=int, help='number of gpu')
@@ -171,9 +171,14 @@ def print_network(net):
 
 
 if __name__ == '__main__':
+    if opt.cpu:
+        print("===== Use CPU to Test! =====")
+    else:
+        print("===== Use GPU to Test! =====")
+
     ## Set the GPU mode
     gpus_list=range(opt.gpus)
-    cuda = opt.gpu_mode
+    cuda = not opt.cpu
     if cuda and not torch.cuda.is_available():
         raise Exception("No GPU found, please run without --cuda")
 
@@ -187,20 +192,19 @@ if __name__ == '__main__':
     print_network(model.discriminator)
     print('----------------------------------------------')
 
-    pretained_G_model = torch.load(opt.model, map_location=lambda storage, loc: storage)
+    pretained_model = torch.load(opt.model, map_location=lambda storage, loc: storage)
 
     if cuda:
         model = model.cuda()
         model.generator = torch.nn.DataParallel(model.generator, device_ids=gpus_list)
         model.discriminator = torch.nn.DataParallel(model.discriminator, device_ids=gpus_list)
-        model.generator.load_state_dict(pretained_G_model)
+        model.load_state_dict(pretained_model)
     else:
-        new_state_dict = model.generator.state_dict()
-        for k, v in pretained_G_model.items():
-            if k[:7] == 'module.':
-                k = k[7:]
+        new_state_dict = model.state_dict()
+        for k, v in pretained_model.items():
+            k = k.replace('module.', '')
             new_state_dict[k] = v
-        model.generator.load_state_dict(new_state_dict)
+        model.load_state_dict(new_state_dict)
         
 
     # pretained_G_model = torch.load(opt.model, map_location=lambda storage, loc: storage)
