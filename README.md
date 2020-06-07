@@ -35,6 +35,8 @@ python eval.py --cpu --bs your_batch_size --model your_checkpoint_path --img_fli
 PS: The pretrained model under folder './pretrained_model/' is trained from Places2 dataset with [Irregular Mask](https://nv-adlr.github.io/publication/partialconv-inpainting) dataset. **Please train RN from scratch if you test data not from Places2 or using regular mask.**
 
 ## Cite Us
+Please cite us if you find this work helps.
+
 ```
 @misc{yu2019region,
     title={Region Normalization for Image Inpainting},
