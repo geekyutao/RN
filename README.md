@@ -48,28 +48,10 @@ Please cite us if you find this work helps.
                Zhizheng Zhang and
                Sen Liu},
   title     = {Region Normalization for Image Inpainting},
-  booktitle = {The Thirty-Fourth {AAAI} Conference on Artificial Intelligence, {AAAI}
-               2020, The Thirty-Second Innovative Applications of Artificial Intelligence
-               Conference, {IAAI} 2020, The Tenth {AAAI} Symposium on Educational
-               Advances in Artificial Intelligence, {EAAI} 2020, New York, NY, USA,
-               February 7-12, 2020},
+  booktitle = {{AAAI}},
   pages     = {12733--12740},
   publisher = {{AAAI} Press},
-  year      = {2020},
-  url       = {https://aaai.org/ojs/index.php/AAAI/article/view/6967},
-  timestamp = {Wed, 03 Jun 2020 18:42:45 +0200},
-  biburl    = {https://dblp.org/rec/conf/aaai/YuGJW0LZL20.bib},
-  bibsource = {dblp computer science bibliography, https://dblp.org}
-}
-
-
-@misc{yu2019region,
-    title={Region Normalization for Image Inpainting},
-    author={Tao Yu and Zongyu Guo and Xin Jin and Shilin Wu and Zhibo Chen and Weiping Li and Zhizheng Zhang and Sen Liu},
-    year={2019},
-    eprint={1911.10375},
-    archivePrefix={arXiv},
-    primaryClass={cs.CV}
+  year      = {2020}
 }
 ```
 
