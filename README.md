@@ -55,5 +55,14 @@ Please cite us if you find this work helps.
 }
 ```
 
+```
+@article{yu2019region,
+  title={Region Normalization for Image Inpainting},
+  author={Yu, Tao and Guo, Zongyu and Jin, Xin and Wu, Shilin and Chen, Zhibo and Li, Weiping and Zhang, Zhizheng and Liu, Sen},
+  journal={arXiv preprint arXiv:1911.10375},
+  year={2019}
+}
+```
+
 ## Appreciation
 The codes refer to [EdgeConnect](https://github.com/knazeri/edge-connect). Thanks for the authors of it！
