@@ -37,32 +37,13 @@ PS: The pretrained model under folder './pretrained_model/' is trained from Plac
 ## Cite Us
 Please cite us if you find this work helps.
 
-For [AAAI version](https://www.aaai.org/Papers/AAAI/2020GB/AAAI-YuT.833.pdf):
 ```
-@inproceedings{DBLP:conf/aaai/YuGJW0LZL20,
-  author    = {Tao Yu and
-               Zongyu Guo and
-               Xin Jin and
-               Shilin Wu and
-               Zhibo Chen and
-               Weiping Li and
-               Zhizheng Zhang and
-               Sen Liu},
-  title     = {Region Normalization for Image Inpainting},
-  booktitle = {{AAAI}},
-  pages     = {12733--12740},
-  publisher = {{AAAI} Press},
-  year      = {2020}
-}
-```
-
-For [arXiv version](https://arxiv.org/abs/1911.10375): 
-```
-@article{yu2019region,
-  title={Region Normalization for Image Inpainting},
+@inproceedings{yu2020region,
+  title={Region Normalization for Image Inpainting.},
   author={Yu, Tao and Guo, Zongyu and Jin, Xin and Wu, Shilin and Chen, Zhibo and Li, Weiping and Zhang, Zhizheng and Liu, Sen},
-  journal={arXiv preprint arXiv:1911.10375},
-  year={2019}
+  booktitle={AAAI},
+  pages={12733--12740},
+  year={2020}
 }
 ```
 
