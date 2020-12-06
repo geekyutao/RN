@@ -94,6 +94,11 @@ def train(epoch):
         d_fake_loss = model.adversarial_loss(d_fake, False, True)
         d_loss += (d_real_loss + d_fake_loss) / 2
 
+        # Backward
+        d_loss.backward()
+        model.dis_optimizer.step()
+        model.dis_optimizer.zero_grad()
+
         g_fake, _ = model.discriminator(prediction)
         g_gan_loss = model.adversarial_loss(g_fake, True, False)
         g_loss += model.gan_weight * g_gan_loss
@@ -110,10 +115,6 @@ def train(epoch):
         avg_d_loss += d_loss.data.item()
 
         # Backward
-        d_loss.backward()
-        model.dis_optimizer.step()
-        model.dis_optimizer.zero_grad()
-
         g_loss.backward()
         model.gen_optimizer.step()
         model.gen_optimizer.zero_grad()
