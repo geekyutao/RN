@@ -19,7 +19,8 @@ import pdb
 import socket
 import time
 from skimage import io
-from skimage.measure import compare_psnr
+# from skimage.measure import compare_psnr
+from skimage.metrics import peak_signal_noise_ratio as compare_psnr
 
 from models import InpaintingModel
 
@@ -44,7 +45,7 @@ parser.add_argument('--model_type', type=str, default='RN')
 parser.add_argument('--threshold', type=float, default=0.8)
 parser.add_argument('--pretrained_sr', default='../weights/xx.pth', help='pretrained base model')
 parser.add_argument('--pretrained', type=bool, default=False)
-parser.add_argument('--save_folder', default='/data/yutao/Project/weights/', help='Location to save checkpoint models')
+parser.add_argument('--save_folder', default='./ckpt/', help='Location to save checkpoint models')
 parser.add_argument('--prefix', default='0p1GAN0p8thre', help='Location to save checkpoint models')
 parser.add_argument('--print_interval', type=int, default=100, help='how many steps to print the results out')
 parser.add_argument('--render_interval', type=int, default=10000, help='how many steps to save a checkpoint')
@@ -92,14 +93,24 @@ def train(epoch):
         d_fake, _ = model.discriminator(prediction.detach())
         d_real_loss = model.adversarial_loss(d_real, True, True)
         d_fake_loss = model.adversarial_loss(d_fake, False, True)
-        d_loss += (d_real_loss + d_fake_loss) / 2
+        d_loss = d_loss + (d_real_loss + d_fake_loss) / 2
+
+        # Backward D
+        d_loss.backward()
+        model.dis_optimizer.step()
+        model.dis_optimizer.zero_grad()
 
         g_fake, _ = model.discriminator(prediction)
         g_gan_loss = model.adversarial_loss(g_fake, True, False)
-        g_loss += model.gan_weight * g_gan_loss
+        g_loss = g_loss + model.gan_weight * g_gan_loss
         g_l1_loss = model.l1_loss(gt, merged_result) / torch.mean(mask)
         # g_l1_loss = model.l1_loss(gt, prediction) / torch.mean(mask)
-        g_loss += model.l1_weight * g_l1_loss
+        g_loss = g_loss + model.l1_weight * g_l1_loss
+
+        # Backward G
+        g_loss.backward()
+        model.gen_optimizer.step()
+        model.gen_optimizer.zero_grad()
 
         # Record
         cur_l1_loss += g_l1_loss.data.item()
@@ -108,15 +119,6 @@ def train(epoch):
         avg_gan_loss += g_gan_loss.data.item()
         avg_g_loss += g_loss.data.item()
         avg_d_loss += d_loss.data.item()
-
-        # Backward
-        d_loss.backward()
-        model.dis_optimizer.step()
-        model.dis_optimizer.zero_grad()
-
-        g_loss.backward()
-        model.gen_optimizer.step()
-        model.gen_optimizer.zero_grad()
 
         model.global_iter += 1
         iteration += 1
@@ -141,31 +143,22 @@ def train(epoch):
         if iteration % opt.render_interval == 0:
             render(epoch, iteration, mask, merged_result.detach(), gt)
             if opt.with_test:
-                print("Testing 1000 images...")
-                test_psnr = test(model, test_data_loader)
+                test_num = 500
+                print("Testing {} images...".format(test_num))
+                test_psnr = test(model, test_data_loader, test_num=test_num)    # or 'all'
+                print("PSNR: ", test_psnr)
                 if opt.tb:
                     writer.add_scalar('scalar/test_PSNR', test_psnr, model.global_iter)
-                    print("PSNR: ", test_psnr)
 
-        # if iteration % opt.update_weight_interval == 0:
-        #     if last_l1_loss == 0:
-        #         last_l1_loss, last_gan_loss = cur_l1_loss, cur_gan_loss
-        #     weights = dynamic_weigh([last_l1_loss, last_gan_loss], [cur_l1_loss, cur_gan_loss], T=1)
-        #     model.l1_weight, model.gan_weight = weights[0], weights[1]
-        #     print("===> losses weights changing: [l1, gan] = {:.4f}, {:.4f}".format(model.l1_weight, model.gan_weight))
-        #     last_l1_loss, last_gan_loss = cur_l1_loss, cur_gan_loss
-
-
-
-def dynamic_weigh(last_losses, cur_losses, T=20):
-    # input lists
-    last_losses, cur_losses = torch.Tensor(last_losses), torch.Tensor(cur_losses)
-    w = torch.exp((cur_losses / last_losses) / T)
-    return (last_losses.size(0) * w / torch.sum(w)).cuda()
+        if iteration % 50000 == 0:
+            checkpoint(iteration)
 
 def render(epoch, iter, mask, output, gt):
+    diry = 'render/'+opt.prefix
+    if not os.path.exists(diry):
+        os.makedirs(diry)
 
-    name_pre = 'render/'+str(epoch)+'_'+str(iter)+'_'
+    name_pre = diry+'/'+str(epoch)+'_'+str(iter)+'_'
 
     # input: (bs,3,256,256)
     input = gt * (1 - mask) + mask
@@ -184,7 +177,7 @@ def render(epoch, iter, mask, output, gt):
     gt = gt[0].permute(1,2,0).cpu().numpy()
     io.imsave(name_pre+'gt.png', (gt*255).astype(np.uint8))
 
-def test(gen, dataloader):
+def test(gen, dataloader, test_num='all'):
     model = gen.eval()
     psnr = 0
     count = 0
@@ -200,6 +193,11 @@ def test(gen, dataloader):
             psnr += compare_psnr(pred.permute(1,2,0).cpu().numpy(), gt.permute(1,2,0).cpu().numpy(),\
             data_range=1)
             count += 1
+        if test_num == 'all':
+            pass
+        elif count > test_num:
+            break
+
     return psnr / count
 
 def checkpoint(epoch):
@@ -250,7 +248,7 @@ if __name__ == '__main__':
             ' | GAN loss weight:', model.gan_weight)
 
     # Datasets
-    print('===> Loading datasets')
+    print('===> Loading datasets...')
     training_data_loader = build_dataloader(
         flist=opt.img_flist,
         mask_flist=opt.mask_flist,
@@ -261,7 +259,7 @@ if __name__ == '__main__':
         num_workers=opt.threads,
         shuffle=True
     )
-    print('===> Loaded datasets')
+    print('===> Datasets loaded!')
 
     if opt.test or opt.with_test:
         test_data_loader = build_dataloader(
@@ -274,13 +272,16 @@ if __name__ == '__main__':
             num_workers=opt.threads,
             shuffle=False
         )
-        print('===> Loaded test datasets')
+        print('===> Test datasets loaded')
 
     if opt.test:
         test_psnr = test(model, test_data_loader)
         os._exit(0)
 
     # Start training
+    if not os.path.exists('render'):
+        os.makedirs('render')
+    
     for epoch in range(opt.start_epoch, opt.nEpochs + 1):
 
         train(epoch)

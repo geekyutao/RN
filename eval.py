@@ -20,11 +20,18 @@ import pdb
 import socket
 import time
 import skimage
-from skimage.measure import compare_ssim
-from skimage.measure import compare_psnr
+# from skimage.measure import compare_ssim
+# from skimage.measure import compare_psnr
+from skimage.metrics import peak_signal_noise_ratio as compare_psnr
+from skimage.metrics import structural_similarity as compare_ssim
 
 from models import InpaintingModel
 
+# from cal_fid import calculate_fid_given_paths
+
+import lpips
+
+loss_fn_alex = lpips.LPIPS(net='alex').cuda()
 
 # Training settings
 parser = argparse.ArgumentParser(description='PyTorch Video Inpainting with Background Auxilary')
@@ -47,13 +54,12 @@ parser.add_argument('--gan_weight', type=float, default=0.1)
 
 opt = parser.parse_args()
 
-
 def eval():
     model.eval()
     model.generator.eval()
     count = 1
     avg_du = 0
-    avg_psnr, avg_ssim, avg_l1 = 0., 0., 0.
+    avg_psnr, avg_ssim, avg_l1, avg_lpips = 0., 0., 0., 0.
     for batch in testing_data_loader:
         gt, mask, index = batch
         t_io2 = time.time()
@@ -68,6 +74,8 @@ def eval():
         with torch.no_grad():
             prediction = model.generator(gt, mask)
             prediction = prediction * mask + gt * (1 - mask)
+            batch_avg_lpips = loss_fn_alex(prediction, gt).mean()
+        avg_lpips = avg_lpips + ((batch_avg_lpips- avg_lpips) / count)
         # t1 = time.clock()
         # du = t1 - t0
         # print("===> Processing: %s || Timer: %.4f sec." % (str(count), du))
@@ -98,10 +106,12 @@ def eval():
             "Number: %05d" % (count * opt.bs),
             " | Average: PSNR: %.4f" % (avg_psnr),
             " SSIM: %.4f" % (avg_ssim),
+            " LPIPS: %.4f" % (avg_lpips),
             " L1: %.4f" % (avg_l1),
             "| Current batch:", count,
             " PSNR: %.4f" % (batch_avg_psnr),
             " SSIM: %.4f" % (batch_avg_ssim),
+            " LPIPS: %.4f" % (batch_avg_lpips),
             " L1: %.4f" % (batch_avg_l1), flush=True
         )
 
@@ -150,6 +160,7 @@ def evaluate_batch(batch_size, gt_batch, pred_batch, mask_batch, save=False, pat
 
         psnr += PSNR(pred, gt)
         ssim += SSIM(pred, gt)
+        # ssim += SSIM(pred, gt, multichannel=False)
         l1 += L1(pred, gt)
 
         if save:
@@ -164,10 +175,14 @@ def evaluate_batch(batch_size, gt_batch, pred_batch, mask_batch, save=False, pat
 
 def print_network(net):
     num_params = 0
+    learnable_num_params = 0
     for param in net.parameters():
         num_params += param.numel()
+        if param.requires_grad:
+            learnable_num_params += param.numel()
     print(net)
     print('Total number of parameters: %d' % num_params)
+    print('Learnable number of parameters: %d' % learnable_num_params)
 
 
 if __name__ == '__main__':
@@ -192,23 +207,12 @@ if __name__ == '__main__':
     print_network(model.discriminator)
     print('----------------------------------------------')
 
-    pretained_model = torch.load(opt.model, map_location=lambda storage, loc: storage)
+    pretrained_model = torch.load(opt.model, map_location=lambda storage, loc: storage)
 
-    if cuda:
-        model = model.cuda()
-        model.generator = torch.nn.DataParallel(model.generator, device_ids=gpus_list)
-        model.discriminator = torch.nn.DataParallel(model.discriminator, device_ids=gpus_list)
-        model.load_state_dict(pretained_model)
-    else:
-        new_state_dict = model.state_dict()
-        for k, v in pretained_model.items():
-            k = k.replace('module.', '')
-            new_state_dict[k] = v
-        model.load_state_dict(new_state_dict)
-        
-
-    # pretained_G_model = torch.load(opt.model, map_location=lambda storage, loc: storage)
-    # model.generator.load_state_dict(pretained_G_model)
+    model.generator = torch.nn.DataParallel(model.generator, device_ids=gpus_list)
+    model.discriminator = torch.nn.DataParallel(model.discriminator, device_ids=gpus_list)
+    model.load_state_dict(pretrained_model, strict=False)   # strict=Fasle since I modify discirminator in the previous commit
+    model.generator = model.generator.cuda()
     print('Pre-trained G model is loaded.')
 
     # Datasets
@@ -223,7 +227,7 @@ if __name__ == '__main__':
         num_workers=opt.threads,
         shuffle=False
     )
-    print('===> Loaded datasets')
+    print('===> Dataset loaded!')
 
     ## Eval Start!!!!
     eval()

@@ -6,8 +6,11 @@ import random
 import numpy as np
 import torchvision.transforms.functional as F
 from PIL import Image
-from scipy.misc import imread
+# from scipy.misc import imread
+import imageio
+import cv2
 from skimage.color import rgb2gray, gray2rgb
+from skimage.transform import resize
 from torch.utils.data import DataLoader
 
 def my_transforms():
@@ -30,11 +33,12 @@ class Dataset(torch.utils.data.Dataset):
         return len(self.data)
 
     def __getitem__(self, index):
-        try:
-            item = self.load_item(index)
-        except:
-            print('loading error: ' + self.data[index])
-            item = self.load_item(0)
+        item = self.load_item(index)
+        # try:
+        #     item = self.load_item(index)
+        # except:
+        #     print('loading error: ' + self.data[index])
+        #     item = self.load_item(0)
 
         return item
 
@@ -47,7 +51,7 @@ class Dataset(torch.utils.data.Dataset):
         size = self.input_size
 
         # load image
-        img = imread(self.data[index])
+        img = imageio.imread(self.data[index])
 
         # gray to rgb
         if len(img.shape) < 3:
@@ -75,13 +79,14 @@ class Dataset(torch.utils.data.Dataset):
         # external
         if self.training:
             mask_index = random.randint(0, len(self.mask_data) - 1)
-            mask = imread(self.mask_data[mask_index])
+            mask = imageio.imread(self.mask_data[mask_index])
             mask = self.resize(mask, imgh, imgw)
         else:   # in test mode, there's a one-to-one relationship between mask and image; masks are loaded non random
             # mask = 255 - imread(self.mask_data[index])[:,:,0]    # ICME original (H,W,3) mask: 0 for hole
-            mask = imread(self.mask_data[index])   # mask must be 255 for hole in this InpaintingModel
+            mask = imageio.imread(self.mask_data[index])   # mask must be 255 for hole in this InpaintingModel
             mask = self.resize(mask, imgh, imgw, centerCrop=False)
-            mask = rgb2gray(mask)
+            if len(mask.shape) == 3:
+                mask = rgb2gray(mask)
         mask = (mask > 0).astype(np.uint8) * 255       # threshold due to interpolation
         return mask
 
@@ -91,7 +96,7 @@ class Dataset(torch.utils.data.Dataset):
         return img_t
 
     def resize(self, img, height, width, centerCrop=True):
-        imgh, imgw = img.shape[0:2]
+        imgh, imgw = img.shape[:2]
 
         if centerCrop and imgh != imgw:
             # center crop
@@ -100,7 +105,9 @@ class Dataset(torch.utils.data.Dataset):
             i = (imgw - side) // 2
             img = img[j:j + side, i:i + side, ...]
 
-        img = scipy.misc.imresize(img, [height, width])
+        # print(type(img))    # imageio.core.util.Array
+        # img = scipy.misc.imresize(img, [height, width])
+        img = cv2.resize(img, (height, width))
 
         return img
 

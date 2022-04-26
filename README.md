@@ -6,6 +6,10 @@ Please run the codes where the python is Version 3.x and pytorch>=0.4.
 
 PS: The results of this version codes are better than those in the paper. The original base inpainting model that RN uses is not very stable (the result variance is a bit large) and we only reported conservative results. However, we optimized the base model and improved its robustness after the pulication so that the results now are better.
 
+## Repo Update:
+- [04/26/2022] Support torch >= 1.7; fix old-version issues.
+
+
 ## Preparation
 Before running the codes, you should prepare training/evaluation image file list (flist) and mask file list (flist). You can refer to the folowing command to generate .flist file:
 ```
