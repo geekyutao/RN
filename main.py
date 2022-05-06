@@ -242,7 +242,7 @@ if __name__ == '__main__':
         print('pretrained model: %s' % model_name)
         if os.path.exists(model_name):
             pretained_model = torch.load(model_name, map_location=lambda storage, loc: storage)
-            model.load_state_dict(pretained_model)
+            model.load_state_dict(pretained_model, strict=False)   # strict=Fasle since I modify discirminator in the previous commit
             print('Pre-trained model is loaded.')
             print(' Current: G learning rate:', model.g_lr, ' | L1 loss weight:', model.l1_weight, \
             ' | GAN loss weight:', model.gan_weight)
