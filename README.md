@@ -4,7 +4,7 @@ The paper can be found [here](https://arxiv.org/abs/1911.10375). If you have any
 
 Please run the codes where the python is Version 3.x and pytorch>=0.4.
 
-PS: The results of this version codes are better than those in the paper. The original base inpainting model that RN uses is not very stable (the result variance is a bit large) and we only reported conservative results. However, we optimized the base model and improved its robustness after the pulication so that the results now are better.
+PS: 1) The results of this version codes are better than those in the paper. The original base inpainting model that RN uses is not very stable (the result variance is a bit large) and we only reported conservative results. However, we optimized the base model and improved its robustness after the pulication so that the results now are better. 2) RN wants to bring an insight that spatially region-wise normalization is better for some CV tasks such as inpainting. Theoretically, RN can be both BN-style or IN-style. Both have pros and cons. IN-style RN gives less blurring results and achieves style consistence to background in some extent, while suffers from spatial inconsistence if the model representation ability is limited. BN-style RN gives higher PSNR on an aligned validation data, but makes regions more blurring and causes much data-bias risk when testing data distribution has a certain shift to training data distribution. One chooses the RN style according to the specific scene. (See [issue #12](https://github.com/geekyutao/RN/issues/12))
 
 ## Repo Update:
 - [04/26/2022] Support torch >= 1.7; fix old-version issues.
